@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
-import br.com.danielflavio.todolist.task.ITaskRepository;
 import br.com.danielflavio.todolist.user.IUserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -48,19 +47,17 @@ public class FilterTaskAuth extends OncePerRequestFilter {
         var user = this.userRepository.findByUsername(username);
 
         if (user.isEmpty()) {
-            response.sendError(401);
-        } else {
-            
-            var passwordVerify = BCrypt.verifyer().verify(password.toCharArray(), user.get().getPassword());
-
-            if (passwordVerify.verified) {
-                filterChain.doFilter(request, response);
-            } else {
-                response.sendError(401);
-            }
-
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
-        // Validar a senha
+
+        var passwordVerify = BCrypt.verifyer()
+                .verify(password.toCharArray(), user.get().getPassword());
+
+        if (!passwordVerify.verified) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
 
         filterChain.doFilter(request, response);
     }
