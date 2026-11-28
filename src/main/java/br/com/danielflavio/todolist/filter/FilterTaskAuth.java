@@ -25,41 +25,49 @@ public class FilterTaskAuth extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        // Pegar Autenticação do usuário
-        var authorization = request.getHeader("Authorization");
-        System.out.println("Authorization: " + authorization);
         
-        var passwordHashed = authorization.substring("Basic".length()).trim();
-        byte[] authDecode = Base64.getDecoder().decode(passwordHashed);
-        var authDecodeString = new String(authDecode);
+        var servletPath = request.getServletPath();
         
-        String[] credentials = authDecodeString.split(":");
-        String username = credentials[0];
-        String password = credentials[1];
+        if (servletPath.equals("/tasks/")) {
         
-        System.out.println("passwordHashed: " + passwordHashed);
-        System.out.println("authDecode: " +authDecodeString);
-        System.out.println("username: " + username);
-        System.out.println("password: " + password);
-                
+            // Pegar Autenticação do usuário
+            var authorization = request.getHeader("Authorization");
+            System.out.println("Authorization: " + authorization);
+            
+            var passwordHashed = authorization.substring("Basic".length()).trim();
+            byte[] authDecode = Base64.getDecoder().decode(passwordHashed);
+            var authDecodeString = new String(authDecode);
+            
+            String[] credentials = authDecodeString.split(":");
+            String username = credentials[0];
+            String password = credentials[1];
+            
+            System.out.println("passwordHashed: " + passwordHashed);
+            System.out.println("authDecode: " +authDecodeString);
+            System.out.println("username: " + username);
+            System.out.println("password: " + password);
 
-        // Validar se o usuário tem permissão para acessar a rota
-        var user = this.userRepository.findByUsername(username);
+            // Validar se o usuário tem permissão para acessar a rota
+            var user = this.userRepository.findByUsername(username);
 
-        if (user.isEmpty()) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
+            if (user.isEmpty()) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
 
-        var passwordVerify = BCrypt.verifyer()
-                .verify(password.toCharArray(), user.get().getPassword());
+            var passwordVerify = BCrypt.verifyer().verify(password.toCharArray(), user.get().getPassword());
 
-        if (!passwordVerify.verified) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+            if (!passwordVerify.verified) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            } else {
+                request.setAttribute("idUser", user.get().getId());
+            }
+
         }
 
         filterChain.doFilter(request, response);
+
     }
     
 }
